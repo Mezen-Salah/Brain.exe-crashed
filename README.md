@@ -1,4 +1,4 @@
-# 🛍️ FinCommerce Engine
+# 🛍️ PriceSense
 
 **AI-Powered E-Commerce with Financial Intelligence**
 

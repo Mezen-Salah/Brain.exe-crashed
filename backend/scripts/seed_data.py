@@ -325,7 +325,7 @@ def seed_users():
 def main():
     """Seed all collections"""
     logger.info("=" * 60)
-    logger.info("🌱 FinCommerce Engine - Seeding Sample Data")
+    logger.info("🌱 PriceSense - Seeding Sample Data")
     logger.info("=" * 60)
     logger.info("")
     

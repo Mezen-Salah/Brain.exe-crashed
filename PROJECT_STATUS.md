@@ -1,4 +1,4 @@
-# 📊 FinCommerce Engine - Project Status
+# 📊 PriceSense - Project Status
 
 **Last Updated:** January 25, 2026
 

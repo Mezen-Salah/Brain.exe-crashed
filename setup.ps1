@@ -1,4 +1,4 @@
-# FinCommerce Engine - PowerShell Setup Script
+# PriceSense - PowerShell Setup Script
 # Run this to set up everything automatically
 
 Write-Host "=====================================================================" -ForegroundColor Cyan

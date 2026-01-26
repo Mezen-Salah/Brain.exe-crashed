@@ -1,4 +1,4 @@
-# ✅ FinCommerce Engine - Setup Checklist
+# ✅ PriceSense - Setup Checklist
 
 ## 🎯 Initial Setup (15 minutes)
 

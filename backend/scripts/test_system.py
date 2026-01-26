@@ -308,7 +308,7 @@ def test_agent1() -> Tuple[bool, List[str]]:
 def main():
     """Run all tests"""
     logger.info("=" * 70)
-    logger.info("🚀 FINCOMMERCE ENGINE - COMPONENT TESTS")
+    logger.info("🚀 PRICESENSE - COMPONENT TESTS")
     logger.info("=" * 70)
     logger.info("")
     

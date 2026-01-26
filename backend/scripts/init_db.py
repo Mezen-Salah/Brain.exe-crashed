@@ -76,7 +76,7 @@ def init_redis():
 def main():
     """Run all initialization"""
     logger.info("=" * 60)
-    logger.info("🚀 FinCommerce Engine - Database Initialization")
+    logger.info("🚀 PriceSense - Database Initialization")
     logger.info("=" * 60)
     
     # Check configuration

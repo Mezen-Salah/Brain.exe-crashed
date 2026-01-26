@@ -1,5 +1,5 @@
 """
-Configuration settings for FinCommerce Engine
+Configuration settings for PriceSense
 """
 from pydantic_settings import BaseSettings
 from typing import Optional

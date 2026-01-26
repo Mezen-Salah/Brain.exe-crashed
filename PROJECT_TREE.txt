@@ -1,6 +1,6 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         FINCOMMERCE ENGINE                                   │
+│                            PRICESENSE                                        │
 │                    AI-Powered E-Commerce with Financial Intelligence         │
 │                                                                              │
 │                            🎯 40% COMPLETE                                   │

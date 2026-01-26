@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, 'c:/Users/mezen/fincommerce-engine/backend')
 
 print("="*60)
-print("FinCommerce Engine - Quick Tests")
+print("PriceSense - Quick Tests")
 print("="*60)
 
 # ============================================================================

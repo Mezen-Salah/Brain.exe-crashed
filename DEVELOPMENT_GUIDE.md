@@ -1,4 +1,4 @@
-# 🚀 FinCommerce Engine - Development Guide
+# 🚀 PriceSense - Development Guide
 
 ## ✅ What We've Built So Far
 
@@ -336,7 +336,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models.schemas import SearchRequest, SearchResponse
 
-app = FastAPI(title="FinCommerce Engine API")
+app = FastAPI(title="PriceSense API")
 
 # CORS for frontend
 app.add_middleware(

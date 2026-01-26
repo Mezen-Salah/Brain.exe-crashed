@@ -1,4 +1,4 @@
-# 🚀 Quick Start Guide - FinCommerce Engine
+# 🚀 Quick Start Guide - PriceSense
 
 ## What You Have Right Now
 
