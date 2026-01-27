@@ -79,10 +79,13 @@ class Settings(BaseSettings):
     # Performance
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
+    backend_url: Optional[str] = None
+    streamlit_port: Optional[int] = None
     
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields in .env
 
 
 # Global settings instance

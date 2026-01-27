@@ -76,6 +76,8 @@ class ProductDiscoveryAgent:
             
         except Exception as e:
             logger.error(f"Agent 1 error: {e}", exc_info=True)
+            if 'errors' not in state:
+                state['errors'] = []
             state['errors'].append(f"Product Discovery: {str(e)}")
             state['candidate_products'] = []
             state['search_time_ms'] = int((time.time() - start_time) * 1000)
@@ -135,8 +137,8 @@ class ProductDiscoveryAgent:
         user_filters = state.get('filters', {})
         
         # Budget filter (allow 1.5x flexibility)
-        user_profile = state['user_profile']
-        if hasattr(user_profile, 'monthly_income'):
+        user_profile = state.get('user_profile')
+        if user_profile and hasattr(user_profile, 'monthly_income') and user_profile.monthly_income > 0:
             # Estimate max affordable price
             max_price = user_filters.get('max_price')
             if not max_price:
