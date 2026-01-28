@@ -9,7 +9,6 @@ echo ""
 # Check if we're in the right directory
 if [ ! -f "scripts/scrape_mytek.py" ]; then
     echo "❌ Error: Please run this from the backend directory"
-    echo "   cd /home/runner/work/Brain.exe-crashed/Brain.exe-crashed/backend"
     exit 1
 fi
 

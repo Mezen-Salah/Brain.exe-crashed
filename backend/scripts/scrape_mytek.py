@@ -250,7 +250,7 @@ class MytekScraper:
             images = []
             for img in soup.find_all('img', src=re.compile(r'product|image', re.I)):
                 img_url = img.get('src') or img.get('data-src')
-                if img_url:
+                if img_url is not None and img_url:
                     images.append(urljoin(BASE_URL, img_url))
             product['images'] = images[:10]  # Limit to 10 images
             product['main_image'] = images[0] if images else None
@@ -275,9 +275,10 @@ class MytekScraper:
             breadcrumb = soup.find(class_=re.compile(r'breadcrumb|category', re.I))
             if breadcrumb:
                 categories = [a.get_text(strip=True) for a in breadcrumb.find_all('a')]
-                if categories:
-                    product['category'] = categories[-1] if len(categories) > 0 else None
-                    product['subcategory'] = categories[-2] if len(categories) > 1 else None
+                if len(categories) > 0:
+                    product['category'] = categories[-1]
+                if len(categories) > 1:
+                    product['subcategory'] = categories[-2]
             
             # Rating
             rating_elem = soup.find(class_=re.compile(r'rating|star', re.I))

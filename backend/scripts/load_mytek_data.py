@@ -45,7 +45,8 @@ def load_json(filepath: Path) -> List[Dict]:
 def process_product(product: Dict) -> Dict:
     """Convert Mytek scraped format to system format"""
     
-    # Convert TND to USD (approximately 1 TND = 0.32 USD)
+    # Convert TND to USD (rate as of January 2026: approximately 1 TND = 0.32 USD)
+    # TODO: Consider using a currency conversion API for real-time rates
     tnd_to_usd = 0.32
     price_usd = product.get('price_TND', 0) * tnd_to_usd
     original_price_usd = product.get('original_price_TND', 0) * tnd_to_usd
@@ -173,7 +174,8 @@ def upload_products_to_qdrant(products: List[Dict], batch_size: int = 50):
     logger.info(f"   Successful: {successful}")
     logger.info(f"   Failed: {failed}")
     logger.info(f"   Total time: {total_time:.2f}s")
-    logger.info(f"   Average: {total_time/total_products:.3f}s per product")
+    if total_products > 0:
+        logger.info(f"   Average: {total_time/total_products:.3f}s per product")
     
     return successful, failed
 
@@ -189,7 +191,9 @@ def main():
     # Check if file exists
     if not PRODUCTS_FILE.exists():
         print(f"❌ Error: Product file not found: {PRODUCTS_FILE}")
-        print(f"   Please run the scraper first: python scripts/scrape_mytek.py")
+        print(f"   Please run the scraper first:")
+        print(f"   From repository root: python backend/scripts/scrape_mytek.py")
+        print(f"   From backend directory: python scripts/scrape_mytek.py")
         return
     
     # Step 1: Load JSON file

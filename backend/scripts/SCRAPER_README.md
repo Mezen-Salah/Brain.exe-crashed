@@ -26,7 +26,7 @@ This scraper extracts product information from [Mytek.tn](https://www.mytek.tn/)
 ### Install Dependencies
 
 ```bash
-cd /home/runner/work/Brain.exe-crashed/Brain.exe-crashed/backend
+cd backend
 pip install -r requirements.txt
 ```
 
@@ -43,7 +43,7 @@ The scraper requires these additional packages (already added to requirements.tx
 Scrape products using default settings:
 
 ```bash
-cd /home/runner/work/Brain.exe-crashed/Brain.exe-crashed/backend
+cd backend
 python scripts/scrape_mytek.py
 ```
 
