@@ -187,6 +187,25 @@ fincommerce-engine/
 - **RAGAS Faithfulness**: >0.90
 - **Answer Relevancy**: >0.85
 
+## 🕷️ Web Scraping
+
+The project includes a web scraper for [Mytek.tn](https://www.mytek.tn/), a Tunisian electronics e-commerce website.
+
+### Quick Start
+
+```bash
+# Scrape products (basic)
+python backend/scripts/scrape_mytek.py --no-selenium --max-products 100
+
+# Scrape with detailed product pages
+python backend/scripts/scrape_mytek.py --detail --max-products 50
+
+# Load scraped products into Qdrant
+python backend/scripts/load_mytek_data.py
+```
+
+See [SCRAPER_README.md](backend/scripts/SCRAPER_README.md) for detailed documentation.
+
 ## 📈 Future Enhancements
 
 - [ ] Voice search integration
