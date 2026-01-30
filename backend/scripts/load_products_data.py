@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message
 logger = logging.getLogger(__name__)
 
 # Data file path
-PRODUCTS_FILE = Path("C:/Users/mezen/OneDrive/Desktop/tunisian_electronics_50k.json")
+PRODUCTS_FILE = Path("C:/Users/mezen/OneDrive/Desktop/data 2.0/products.json")
 
 # Initialize services
 qdrant_manager = QdrantManager()

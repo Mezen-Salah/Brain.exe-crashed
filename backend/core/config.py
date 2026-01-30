@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     redis_cache_ttl: int = 3600  # 1 hour
     
     # Embedding Configuration
-    embedding_model: str = "openai/clip-vit-base-patch32"
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dimension: int = 512
     chunk_size: int = 512
     

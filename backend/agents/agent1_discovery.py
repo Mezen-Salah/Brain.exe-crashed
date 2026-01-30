@@ -8,7 +8,7 @@ import re
 from typing import Dict, Any, List
 from models.state import AgentState
 from models.schemas import Product
-from core.embeddings import clip_embedder
+from core.embeddings import CLIPEmbedder
 from core.qdrant_client import qdrant_manager
 from core.config import settings
 
@@ -28,6 +28,7 @@ class ProductDiscoveryAgent:
     
     def __init__(self):
         self.top_k = settings.search_top_k
+        self.embedder = CLIPEmbedder()
     
     def execute(self, state: AgentState) -> AgentState:
         """
@@ -100,25 +101,14 @@ class ProductDiscoveryAgent:
             512-dimensional embedding
         """
         if image_embedding:
-            # Multimodal: 70% text + 30% image
-            logger.info("Generating multimodal embedding (text + image)")
-            
-            # Get text embedding
-            text_embedding = clip_embedder.encode_query(query)
-            
-            # Weighted combination
-            import numpy as np
-            text_array = np.array(text_embedding)
-            image_array = np.array(image_embedding)
-            
-            combined = 0.7 * text_array + 0.3 * image_array
-            combined = combined / np.linalg.norm(combined)
-            
-            return combined.tolist()
+            # For now, ignore image embedding and use text only
+            # TODO: Implement proper multimodal embedding if needed
+            logger.warning("Image embedding provided but not supported with current model")
+            return self.embedder.encode_query(query)
         else:
             # Text only
             logger.info("Generating text embedding")
-            return clip_embedder.encode_query(query)
+            return self.embedder.encode_query(query)
     
     def _extract_budget_from_query(self, query: str) -> float:
         """
@@ -181,23 +171,26 @@ class ProductDiscoveryAgent:
         query_lower = state['query'].lower()
         query_words = query_lower.split()
         
-        # Map common terms to Tunisian categories (French + English)
+        # Map common terms to categories (English categories from new dataset)
         # Laptops: ordinateur portable, pc, laptop, computer, notebook
         laptop_terms = ['laptop', 'ordinateur', 'notebook', 'computer', 'portable']
         if any(term in query_lower for term in laptop_terms) or 'pc' in query_words:
-            filters['category'] = 'Ordinateurs Portables'
+            # Don't filter by category - let semantic search find laptops
+            pass
         
         # Smartphones: téléphone, phone, smartphone, mobile
-        elif any(term in query_lower for term in ['phone', 'smartphone', 'téléphone', 'telephone', 'mobile', 'iphone', 'galaxy', 'xiaomi redmi', 'samsung a', 'samsung s']):
-            filters['category'] = 'Smartphones'
+        elif any(term in query_lower for term in ['phone', 'smartphone', 'téléphone', 'telephone', 'mobile']):
+            # Don't filter - semantic search will find phones
+            pass
         
         # Tablets: tablette, tablet, ipad
-        elif any(term in query_lower for term in ['tablet', 'tablette', 'ipad', 'galaxy tab']):
-            filters['category'] = 'Tablettes'
+        elif any(term in query_lower for term in ['tablet', 'tablette', 'ipad']):
+            # Don't filter - semantic search will find tablets
+            pass
         
         # TVs: télé, téléviseur, tv, television
-        elif any(term in query_lower for term in ['tv', 'télé', 'tele', 'téléviseur', 'televiseur', 'television', 'écran']):
-            filters['category'] = 'Téléviseurs'
+        elif any(term in query_lower for term in ['tv', 'télé', 'tele', 'téléviseur', 'televiseur', 'television']):
+            filters['category'] = 'TVs'
         
         # Accessories: accessoire, écouteur, casque, chargeur, étui
         elif any(term in query_lower for term in ['accessoire', 'accessory', 'écouteur', 'ecouteur', 'casque', 'chargeur', 'charger', 'étui', 'etui', 'case', 'headphone', 'earphone']):

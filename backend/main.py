@@ -6,6 +6,7 @@ Endpoints:
 - POST /api/feedback/action - User action feedback for Thompson Sampling
 - GET /api/health - System health check
 - GET /api/cache/stats - Cache statistics
+- GET /api/mcp/tools - List all MCP tools
 """
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,7 @@ from services.orchestrator import execute_workflow
 from services.routing import ComplexityRouter
 from core.qdrant_client import qdrant_manager
 from core.config import settings
+from mcp_server import get_all_tools
 
 # Configure logging
 logging.basicConfig(
@@ -297,10 +299,28 @@ async def search_products(request: SearchRequest):
             warnings=[]
         )
         
+        # Check cache first if enabled
+        from core.redis_client import RedisManager
+        cache_available = False
+        cached_response = None
+        
+        if request.use_cache:
+            try:
+                redis_mgr = RedisManager()
+                user_profile = state.get('user_profile') or {}
+                user_id = user_profile.get('user_id', 'anonymous')
+                cached_response = redis_mgr.get_cached_search(request.query, user_id)
+                if cached_response:
+                    cache_available = True
+                    logger.info("Cache hit - returning cached results")
+                    return SearchResponse(**cached_response)
+            except Exception as e:
+                logger.warning(f"Cache check failed: {e}")
+        
         # Determine complexity and path
         router = ComplexityRouter()
         complexity = router.estimate_complexity(state)
-        path = router.determine_path(state, cache_available=request.use_cache and False)  # TODO: Implement cache check
+        path = router.determine_path(state, cache_available=cache_available)
         
         state['complexity_score'] = complexity
         state['path_taken'] = path.value
@@ -366,7 +386,8 @@ async def search_products(request: SearchRequest):
                 cluster_alternatives=cluster_alts
             ))
         
-        return SearchResponse(
+        # Build response
+        response = SearchResponse(
             success=True,
             query=request.query,
             path_taken=result.get('path_taken', path.value),
@@ -378,6 +399,22 @@ async def search_products(request: SearchRequest):
             errors=result.get('errors', []),
             warnings=result.get('warnings', [])
         )
+        
+        # Cache the response if caching is enabled
+        if request.use_cache:
+            try:
+                redis_mgr = RedisManager()
+                user_profile = state.get('user_profile') or {}
+                user_id = user_profile.get('user_id', 'anonymous')
+                redis_mgr.cache_search_results(
+                    query=request.query,
+                    user_id=user_id,
+                    response=response.dict()
+                )
+            except Exception as e:
+                logger.warning(f"Failed to cache results: {e}")
+        
+        return response
         
     except Exception as e:
         logger.error(f"Search failed: {e}", exc_info=True)
@@ -530,17 +567,19 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Qdrant connection failed: {e}")
     
-    # Check Redis connection
+    # Check Redis connection  
     try:
-        from core.redis_client import redis_client
-        redis_client.ping()
+        from core.redis_client import RedisManager
+        redis_mgr = RedisManager()
+        redis_mgr.client.ping()
         logger.info("✅ Redis connected")
     except Exception as e:
-        logger.error(f"❌ Redis connection failed: {e}")
+        logger.warning(f"⚠️  Redis not available (caching disabled): {e}")
     
     logger.info("=" * 80)
     logger.info(f"📡 API running at: http://localhost:8000")
     logger.info(f"📚 Docs available at: http://localhost:8000/api/docs")
+    logger.info(f"🔧 MCP Tools: {len(get_all_tools())} registered")
     logger.info("=" * 80)
 
 
@@ -548,6 +587,38 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on shutdown"""
     logger.info("🛑 PriceSense API Shutting Down")
+
+
+# ============================================================================
+# MCP TOOLS ENDPOINT
+# ============================================================================
+
+@app.get("/api/mcp/tools")
+async def get_mcp_tools():
+    """
+    Get list of all registered MCP tools
+    
+    Returns tool names, descriptions, and schemas for external agent integration
+    """
+    tools = get_all_tools()
+    
+    return {
+        "success": True,
+        "total_tools": len(tools),
+        "tools": [
+            {
+                "name": tool.name,
+                "description": tool.description,
+                "args_schema": tool.args_schema.schema() if tool.args_schema else None
+            }
+            for tool in tools
+        ],
+        "categories": {
+            "qdrant": 4,
+            "redis": 4,
+            "utilities": 4
+        }
+    }
 
 
 if __name__ == "__main__":

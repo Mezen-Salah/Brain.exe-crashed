@@ -6,7 +6,8 @@ import re
 import time
 import logging
 from typing import Dict, List, Any, Optional, Tuple
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from models.state import AgentState
 from models.schemas import Product
@@ -31,11 +32,12 @@ class ExplainerAgent:
         
         # Configure Gemini
         if settings.google_api_key:
-            genai.configure(api_key=settings.google_api_key)
-            self.model = genai.GenerativeModel(settings.llm_model)
+            self.client = genai.Client(api_key=settings.google_api_key)
+            self.model_name = settings.llm_model
             logger.info(f"Gemini LLM initialized: {settings.llm_model}")
         else:
-            self.model = None
+            self.client = None
+            self.model_name = None
             logger.warning("Google API key not configured - Agent 4 will use fallback explanations")
     
     def execute(self, state: AgentState) -> AgentState:
@@ -67,7 +69,7 @@ class ExplainerAgent:
                 context = self._gather_context(rec, state)
                 
                 # Generate explanation with LLM
-                if self.model:
+                if self.client:
                     explanation, trust_score = self._generate_llm_explanation(
                         rec, context, state
                     )
@@ -196,12 +198,13 @@ class ExplainerAgent:
                 prompt = self._build_prompt(context)
                 
                 # Call Gemini
-                response = self.model.generate_content(
-                    prompt,
-                    generation_config={
-                        'temperature': settings.llm_temperature,
-                        'max_output_tokens': settings.llm_max_tokens,
-                    }
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=settings.llm_temperature,
+                        max_output_tokens=settings.llm_max_tokens,
+                    )
                 )
                 
                 explanation = response.text.strip()

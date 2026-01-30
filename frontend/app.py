@@ -197,7 +197,8 @@ def render_recommendation_card(rec: Dict, idx: int, query: str):
     
     with col4:
         trust_class = get_trust_color(trust_score)
-        st.markdown(f"<div class='trust-score {trust_class}'>{trust_score:.0f}% Trust</div>", 
+        trust_display = f"{trust_score:.0f}" if trust_score is not None else "0"
+        st.markdown(f"<div class='trust-score {trust_class}'>{trust_display}% Trust</div>", 
                    unsafe_allow_html=True)
     
     # Score breakdown

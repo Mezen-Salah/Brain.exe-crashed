@@ -4,6 +4,24 @@
 
 A sophisticated multi-agent recommendation system that combines product discovery with financial analysis, ensuring users find products they can actually afford.
 
+---
+
+## ⚠️ **IMPORTANT: Setup Required**
+
+**This project does NOT work immediately after cloning.**
+
+Before you can run this application, you must:
+1. ✅ Install Docker Desktop (for Qdrant + Redis)
+2. ✅ Create `.env` file with Google API key
+3. ✅ Load data into Qdrant vector database
+4. ✅ Install Python dependencies
+
+**📖 See [SETUP.md](SETUP.md) for complete step-by-step instructions.**
+
+**⏱️ Estimated setup time: 30-45 minutes**
+
+---
+
 ## 🌟 Key Features
 
 - **Multi-Agent AI System**: 5 specialized agents working together
