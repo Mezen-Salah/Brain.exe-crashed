@@ -57,10 +57,9 @@ def load_json(filepath: Path) -> List[Dict]:
 def process_product(product: Dict) -> Dict:
     """Convert Tunisian product format to system format"""
     
-    # Convert TND to USD (approximately 1 TND = 0.32 USD)
-    tnd_to_usd = 0.32
-    price_usd = product.get('price_TND', 0) * tnd_to_usd
-    original_price_usd = product.get('original_price_TND', 0) * tnd_to_usd
+    # Keep prices in TND (no conversion)
+    price_tnd = product.get('price_TND', 0)
+    original_price_tnd = product.get('original_price_TND', 0)
     
     # Extract specifications
     specs = product.get('specifications', {})
@@ -76,8 +75,8 @@ def process_product(product: Dict) -> Dict:
     processed = {
         'product_id': product.get('id'),
         'name': product.get('name'),
-        'price': round(price_usd, 2),
-        'original_price': round(original_price_usd, 2),
+        'price': round(price_tnd, 2),
+        'original_price': round(original_price_tnd, 2),
         'category': product.get('category'),
         'subcategory': product.get('subcategory'),
         'brand': product.get('brand'),

@@ -4,7 +4,8 @@ Finds products using CLIP-based multimodal semantic search
 """
 import time
 import logging
-from typing import Dict, Any
+import re
+from typing import Dict, Any, List
 from models.state import AgentState
 from models.schemas import Product
 from core.embeddings import clip_embedder
@@ -57,7 +58,7 @@ class ProductDiscoveryAgent:
                 query_vector=query_embedding,
                 top_k=self.top_k,
                 filters=filters,
-                score_threshold=0.7
+                score_threshold=0.3  # Lower threshold for Tunisian products
             )
             
             # Step 4: Convert to Product objects
@@ -119,6 +120,51 @@ class ProductDiscoveryAgent:
             logger.info("Generating text embedding")
             return clip_embedder.encode_query(query)
     
+    def _extract_budget_from_query(self, query: str) -> float:
+        """
+        Extract budget constraint from query text
+        
+        Patterns:
+        - "under 1000", "under $1000"
+        - "less than 500", "< 500"
+        - "below 800"
+        - "moins de 1000" (French)
+        - "max 1500"
+        
+        Args:
+            query: Search query
+            
+        Returns:
+            Max price or None if not found
+        """
+        query_lower = query.lower()
+        
+        # Patterns for budget extraction (English and French)
+        patterns = [
+            r'under\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # under 1000, under $1,000
+            r'less\s+than\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # less than 1000
+            r'below\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # below 500
+            r'<\s*\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # < 1000
+            r'max\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # max 1500
+            r'maximum\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # maximum 2000
+            r'moins\s+de\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # moins de 1000 (French)
+            r'pas\s+plus\s+de\s+\$?(\d+(?:,\d{3})*(?:\.\d{2})?)',  # pas plus de 800 (French)
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                # Extract number and remove commas
+                price_str = match.group(1).replace(',', '')
+                try:
+                    price = float(price_str)
+                    logger.info(f"Extracted budget constraint from query: ${price}")
+                    return price
+                except ValueError:
+                    continue
+        
+        return None
+    
     def _build_filters(self, state: AgentState) -> Dict[str, Any]:
         """
         Build search filters from state
@@ -129,24 +175,65 @@ class ProductDiscoveryAgent:
         Returns:
             Filter dictionary for Qdrant
         """
-        filters = {
-            'in_stock': True  # Always filter for in-stock items
-        }
+        filters = {}
+        
+        # Detect category from query (French and English)
+        query_lower = state['query'].lower()
+        query_words = query_lower.split()
+        
+        # Map common terms to Tunisian categories (French + English)
+        # Laptops: ordinateur portable, pc, laptop, computer, notebook
+        laptop_terms = ['laptop', 'ordinateur', 'notebook', 'computer', 'portable']
+        if any(term in query_lower for term in laptop_terms) or 'pc' in query_words:
+            filters['category'] = 'Ordinateurs Portables'
+        
+        # Smartphones: téléphone, phone, smartphone, mobile
+        elif any(term in query_lower for term in ['phone', 'smartphone', 'téléphone', 'telephone', 'mobile', 'iphone', 'galaxy', 'xiaomi redmi', 'samsung a', 'samsung s']):
+            filters['category'] = 'Smartphones'
+        
+        # Tablets: tablette, tablet, ipad
+        elif any(term in query_lower for term in ['tablet', 'tablette', 'ipad', 'galaxy tab']):
+            filters['category'] = 'Tablettes'
+        
+        # TVs: télé, téléviseur, tv, television
+        elif any(term in query_lower for term in ['tv', 'télé', 'tele', 'téléviseur', 'televiseur', 'television', 'écran']):
+            filters['category'] = 'Téléviseurs'
+        
+        # Accessories: accessoire, écouteur, casque, chargeur, étui
+        elif any(term in query_lower for term in ['accessoire', 'accessory', 'écouteur', 'ecouteur', 'casque', 'chargeur', 'charger', 'étui', 'etui', 'case', 'headphone', 'earphone']):
+            filters['category'] = 'Accessoires'
         
         # User-provided filters
         user_filters = state.get('filters', {})
         
-        # Budget filter (allow 1.5x flexibility)
-        user_profile = state.get('user_profile')
-        if user_profile and hasattr(user_profile, 'monthly_income') and user_profile.monthly_income > 0:
-            # Estimate max affordable price
-            max_price = user_filters.get('max_price')
-            if not max_price:
-                # Use safe cash limit × 1.5 as upper bound
+        # Budget filter - Priority:
+        # 1. Budget from query text (highest priority)
+        # 2. Explicit max_price filter
+        # 3. User profile-based estimate
+        max_price = None
+        
+        # Extract budget from query text (e.g., "laptop under 1000")
+        query_budget = self._extract_budget_from_query(state['query'])
+        if query_budget:
+            max_price = query_budget
+            logger.info(f"Using budget from query: ${max_price}")
+        
+        # Check explicit filter
+        elif user_filters.get('max_price'):
+            max_price = user_filters['max_price']
+            logger.info(f"Using explicit max_price filter: ${max_price}")
+        
+        # Estimate from user profile
+        else:
+            user_profile = state.get('user_profile')
+            if user_profile and hasattr(user_profile, 'monthly_income') and user_profile.monthly_income > 0:
                 from utils.financial import FinancialCalculator
                 safe_limit = FinancialCalculator.calculate_safe_cash_limit(user_profile)
                 max_price = safe_limit * 1.5
-            
+                logger.info(f"Using profile-based budget estimate: ${max_price}")
+        
+        # Apply the budget filter
+        if max_price:
             filters['max_price'] = max_price
         
         # Category filter
@@ -175,19 +262,38 @@ class ProductDiscoveryAgent:
         
         for point in scored_points:
             try:
+                payload = point.payload
+                
+                # Handle field name differences between original and Tunisian products
+                # Map Tunisian fields to expected schema
+                
+                # Image URL: main_image or image_url
+                image_url = payload.get('image_url') or payload.get('main_image')
+                
+                # Stock status: in_stock (boolean) or availability (string) or stock_quantity
+                in_stock = payload.get('in_stock')
+                if in_stock is None:
+                    # Check availability string or stock_quantity
+                    availability = payload.get('availability', '').lower()
+                    stock_qty = payload.get('stock_quantity', 0)
+                    in_stock = ('stock' in availability or 'disponible' in availability) or stock_qty > 0
+                
+                # Reviews: num_reviews or number_of_reviews
+                num_reviews = payload.get('num_reviews') or payload.get('number_of_reviews', 0)
+                
                 product = Product(
-                    product_id=point.payload['product_id'],
-                    name=point.payload['name'],
-                    description=point.payload['description'],
-                    price=point.payload['price'],
-                    category=point.payload['category'],
-                    rating=point.payload['rating'],
-                    num_reviews=point.payload['num_reviews'],
-                    image_url=point.payload.get('image_url'),
-                    in_stock=point.payload.get('in_stock', True),
-                    financing_available=point.payload.get('financing_available', False),
-                    financing_terms=point.payload.get('financing_terms'),
-                    cluster_id=point.payload.get('cluster_id'),
+                    product_id=payload['product_id'],
+                    name=payload['name'],
+                    description=payload.get('description', ''),
+                    price=payload['price'],
+                    category=payload.get('category', ''),
+                    rating=payload.get('rating', 0.0),
+                    num_reviews=num_reviews,
+                    image_url=image_url,
+                    in_stock=in_stock,
+                    financing_available=payload.get('financing_available', False),
+                    financing_terms=payload.get('financing_terms'),
+                    cluster_id=payload.get('cluster_id'),
                     embedding=None  # Don't include embedding in response (large)
                 )
                 products.append(product)

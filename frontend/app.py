@@ -155,6 +155,8 @@ def get_score_color(score: float) -> str:
 
 def get_trust_color(trust: float) -> str:
     """Determine trust score color class"""
+    if trust is None or trust == 0:
+        return "trust-low"
     if trust >= 80:
         return "trust-high"
     elif trust >= 60:
@@ -164,8 +166,8 @@ def get_trust_color(trust: float) -> str:
 
 
 def format_currency(amount: float) -> str:
-    """Format amount as currency"""
-    return f"${amount:,.2f}"
+    """Format amount as currency in Tunisian Dinar"""
+    return f"{amount:,.2f} TND"
 
 
 def render_recommendation_card(rec: Dict, idx: int, query: str):
